@@ -89,12 +89,21 @@ class UsefulIMAPMixIn:
             return self._open_socket_for_af(self.af)
 
     def _open_socket_for_af(self, af):
+        print("socket.socket: %s" % socket.socket)
         for res in socket.getaddrinfo(self.host, self.port, af, socket.SOCK_STREAM):
             af, socktype, proto, canonname, sa = res
+            print("af: %r" % af)
+            print("socktype: %r" % socktype)
+            print("proto: %r" % proto)
+            print("canonname: %r" % canonname)
+            print("sa: %r" % (sa,))
             try:
                 # use socket of our own, possibly SOCKS socket.
                 s = self.socket(af, socktype, proto)
-            except socket.error:
+                if hasattr(s, 'proxy'):
+                    sa = (self.host, self.port)
+            except socket.error as e:
+                print("e1: %s" % e)
                 continue
             try:
                 for _ in (0, 1):
@@ -102,12 +111,14 @@ class UsefulIMAPMixIn:
                         s.connect(sa)
                         break
                     except socket.error as msg:
+                        print("e2: %s" % msg)
                         if len(msg.args) < 2 or msg.args[0] != errno.EINTR:
                             raise
                 else:
                     msg = (-1, 'could not open socket')
                     raise socket.error(msg)
-            except socket.error:
+            except socket.error as e:
+                print("e3: %s" % e)
                 s.close()
                 continue
             break
